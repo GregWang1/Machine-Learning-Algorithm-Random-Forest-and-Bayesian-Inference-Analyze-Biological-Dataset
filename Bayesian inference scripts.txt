@@ -1,0 +1,120 @@
+
+###########################################################################################
+
+# Bayesian inference
+
+
+library(readr)
+library(ggplot2)
+library(brms)
+library(bayesplot)
+library(loo)
+library(projpred)
+library(cmdstanr)
+
+
+
+diabetes <- read.csv('diabetes.csv')
+str(diabetes)  # Check the structure of the data
+
+
+diabetes$Outcome <- as.factor(diabetes$Outcome)
+
+# Fit a logistic regression model
+
+brms_m1 <- brm(Outcome ~ . , data = diabetes, family = bernoulli("logit"))
+
+
+# Model diagnostics: is it a reasonable fit?
+
+pp=brms::pp_check(brms_m1)
+pp+theme_bw()
+
+
+# Display the summary of the model
+summary(brms_m1)
+
+
+plot(brms_m1)
+
+conditional_effects(brms_m1)  # using brms command to visulize
+
+
+
+# Evaluate the contribution of each predictor to Outcome, the data needs to be standardized
+# Standardize the dataframe of diabetes
+# Select only the predictor variables (excluding the outcome variable)
+
+predictors <- diabetes[, !(names(diabetes) %in% c("Outcome"))]
+
+# Standardize the predictors
+standardized_predictors <- scale(predictors)
+
+# Create a new data frame with standardized predictors
+diabetes_s <- cbind(Outcome = diabetes$Outcome, as.data.frame(standardized_predictors))
+
+str(diabetes_s)
+
+# Now 'diabetes_s' contains data with standardized predictors
+
+# The brms_m1 model run data at 'diabetes_s', the model was renamed as 'brms_m1_S'
+
+brms_m1_S <- brm(Outcome ~ . , data = diabetes_s, family = bernoulli("logit"))
+
+
+# Model diagnostics: is it a reasonable fit?
+
+pp=brms::pp_check(brms_m1_S)
+pp+theme_bw()
+
+
+# Display the summary of the model
+summary(brms_m1_S)
+
+
+plot(brms_m1_S)
+
+conditional_effects(brms_m1_S)  # using brms command to visulize
+
+
+
+# Compare each predictor contributes to glucose level produced
+
+ 
+brms_m2 <- brm(Glucose ~ DiabetesPedigreeFunction + Pregnancies + Age+BMI, data = diabetes_s, family = gaussian)
+
+
+## model diagnostics: is it a reasonable fit?
+
+pp=brms::pp_check(brms_m2)
+pp+theme_bw()
+
+summary(brms_m2)
+
+plot(brms_m2)
+
+conditional_effects(brms_m2)  # using brms command to visulize
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	

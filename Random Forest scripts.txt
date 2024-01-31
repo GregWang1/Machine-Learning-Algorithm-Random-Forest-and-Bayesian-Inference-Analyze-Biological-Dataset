@@ -1,0 +1,183 @@
+
+
+
+
+#### Random Forest in R analyze diabetes data to pick up important features/targets
+
+# load libraries
+
+library(readr)
+library(ggplot2)
+library(brms)
+library(bayesplot)
+library(loo)
+library(projpred)
+library(cmdstanr)
+library(dplyr)
+library(caret)
+library(randomForest)
+
+
+# Read data
+setwd("C:/Users/jianx/OneDrive/Documents/drug discovery/Monte Carlo Simulation and Bayes/R packages/diabetes")
+data <- read_csv ('diabetes.csv')
+str(data)
+
+
+data$Outcome <- as.factor(data$Outcome)
+
+View(data)
+
+table(data$Outcome)
+
+# Data partition
+
+set.seed(11)
+ind <- sample(2, nrow(data), replace=TRUE, prob=c(0.7, 0.3))
+
+train <- data[ind==1,]
+
+test <- data[ind==2, ]
+
+
+# Random Forest 
+
+set.seed(11)
+RF <- randomForest(Outcome ~., data=train)
+
+print(RF)
+
+
+attributes(RF)
+
+
+RF$importance
+
+
+	
+	
+## Prediction and confusion matrix on train data
+
+p1 <- predict(RF, train)
+
+head(p1)
+
+head(train$Outcome)
+
+
+confusionMatrix(p1, train$Outcome)
+
+
+
+	   
+# prediction wiht test data
+
+p2 <- predict(RF, test)
+
+confusionMatrix(p2, test$Outcome)
+
+
+# Error rate of random forest model, choosing the nubmer of ntree
+
+plot(RF) # 430 ntree ,check the OOB errors drop down with increase of random tree increases
+
+
+
+
+
+# Tune random forest model for the number of mtry
+
+ctrl <- trainControl(method = "cv", number = 10)  # 10-fold cross-validation
+
+# Specify the tuning grid
+
+tuneGrid <- expand.grid(mtry = seq(1, ncol(train) - 1))  # Try different values for mtry
+
+# Train the model with hyperparameter tuning
+rf_model <- train(
+    Outcome ~ .,
+    data = train,
+    method = "rf",
+    tuneGrid = tuneGrid,
+    trControl = ctrl
+    )
+	
+# Print the tuned model
+
+print(rf_model)
+
+
+
+# Plot the tuning results
+
+plot(rf_model)
+
+	
+
+set.seed(11)
+
+RF_update <- randomForest(Outcome~., data=train,
+                   ntree = 430,
+                   mtry = 3,
+                   importance = TRUE,
+                   proximity = TRUE)
+				   	
+					
+	
+plot(RF_update)	
+
+print(RF_update)			
+	
+### using updated model for predicition
+
+	
+##  predicition and confusion matrix
+
+p3 <- predict(RF_update, train)
+
+head(p3)
+
+head(train$Outcome)
+
+
+confusionMatrix(p3, train$Outcome)
+
+
+
+	   
+## prediction wiht test data
+
+p3 <- predict(RF_update, test)
+
+confusionMatrix(p3, test$Outcome)
+
+
+
+
+set.seed(11)
+
+RF_update2<- randomForest(Outcome~., data=data,
+                   ntree = 430,
+                   mtry = 3,
+                   importance = TRUE,
+                   proximity = TRUE)
+				   	
+					
+	
+plot(RF_update2)
+
+print(RF_update2)	
+
+
+
+	 
+# Picking up important features/targets
+			
+
+ varImpPlot(RF_update2,
+            sort=T,
+			n.var =8,
+			main ="Top 8 -Variable Importance") # sroting top 8 variables
+
+
+###########################################################################################
